@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/proxy"
 )
 
 //
@@ -40,7 +42,7 @@ func getDialer(timeout int) *net.Dialer {
 //
 func getTCPconn(address net.IP, port int, timeout int) (net.Conn, error) {
 
-	dialer := getDialer(timeout)
+	dialer := proxy.FromEnvironmentUsing(getDialer(timeout))
 	conn, err := dialer.Dial("tcp", addressString(address, port))
 	return conn, err
 }
