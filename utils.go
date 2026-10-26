@@ -37,6 +37,18 @@ func getTCPconn(address net.IP, port int, timeout int) (net.Conn, error) {
 	return conn, err
 }
 
+func getSTARTTLSconn(address net.IP, port int, timeout int) (net.Conn, error) {
+
+	conn, err := getTCPconn(address, port, timeout)
+	if err != nil {
+		return nil, err
+	}
+	if timeout > 0 {
+		_ = conn.SetDeadline(time.Now().Add(time.Second * time.Duration(timeout)))
+	}
+	return conn, nil
+}
+
 //
 // CertToPEMBytes returns PEM encoded bytes corresponding to the given
 // x.509 certificate.

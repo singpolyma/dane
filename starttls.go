@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const bufsize = 2048
@@ -23,7 +25,7 @@ func DoXMPP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	buf := make([]byte, bufsize)
 
 	server := daneconfig.Server
-	conn, err := getTCPconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
+	conn, err := getSTARTTLSconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +95,7 @@ func DoXMPP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	}
 
 	daneconfig.Transcript = transcript
-	return TLShandshake(conn, tlsconfig)
+	return startTLSHandshake(conn, tlsconfig)
 }
 
 //
@@ -105,7 +107,7 @@ func DoPOP3(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	var line, transcript string
 
 	server := daneconfig.Server
-	conn, err := getTCPconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
+	conn, err := getSTARTTLSconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +140,7 @@ func DoPOP3(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	}
 
 	daneconfig.Transcript = transcript
-	return TLShandshake(conn, tlsconfig)
+	return startTLSHandshake(conn, tlsconfig)
 }
 
 //
@@ -151,7 +153,7 @@ func DoIMAP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	var line, transcript string
 
 	server := daneconfig.Server
-	conn, err := getTCPconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
+	conn, err := getSTARTTLSconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +210,7 @@ func DoIMAP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	}
 
 	daneconfig.Transcript = transcript
-	return TLShandshake(conn, tlsconfig)
+	return startTLSHandshake(conn, tlsconfig)
 }
 
 //
@@ -242,7 +244,7 @@ func DoSMTP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	var responseDone, gotSTARTTLS bool
 
 	server := daneconfig.Server
-	conn, err := getTCPconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
+	conn, err := getSTARTTLSconn(server.Ipaddr, server.Port, daneconfig.TimeoutTCP)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +328,16 @@ func DoSMTP(tlsconfig *tls.Config, daneconfig *Config) (*tls.Conn, error) {
 	}
 
 	daneconfig.Transcript = transcript
-	return TLShandshake(conn, tlsconfig)
+	return startTLSHandshake(conn, tlsconfig)
+}
+
+func startTLSHandshake(conn net.Conn, tlsconfig *tls.Config) (*tls.Conn, error) {
+
+	tlsconn, err := TLShandshake(conn, tlsconfig)
+	if err == nil {
+		_ = conn.SetDeadline(time.Time{})
+	}
+	return tlsconn, err
 }
 
 //
